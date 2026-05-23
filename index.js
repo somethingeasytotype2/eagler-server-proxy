@@ -1,30 +1,30 @@
 const net = require('net');
 const http = require('http');
 
-// 🌟 Configured to grab data directly from your Pinggy tunnel assignment
-const TARGET_HOST = 'dzlve-172-59-153-246.run.pinggy-free.link';
-const TARGET_PORT = 36755; 
+// 🌟 Configured to point directly to your active, permanent Serveo mapping
+const TARGET_HOST = 'vchronos.serveousercontent.com';
+const TARGET_PORT = 80; 
 
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Eaglercraft CGNAT-Bypass Loop Active!');
+    res.end('Eaglercraft CGNAT-Bypass Loop Active via Serveo.');
 });
 
-// Capture raw WebSocket data packets directly at the base network level
+// Intercept raw WebSocket upgrade requests directly at the base network layer
 server.on('upgrade', (req, clientSocket, head) => {
-    // Reconstruct the raw HTTP upgrade request packet string
+    // Reconstruct the raw HTTP handshake request text block manually
     let rawRequest = `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`;
     for (const [key, value] of Object.entries(req.headers)) {
         rawRequest += `${key}: ${value}\r\n`;
     }
     rawRequest += '\r\n';
 
-    // Bridge Render's instance straight down the outbound Pinggy socket link
+    // Establish a direct TCP stream tunnel from Render directly to your Serveo link
     const targetSocket = net.connect(TARGET_PORT, TARGET_HOST, () => {
         targetSocket.write(rawRequest);
         if (head && head.length > 0) targetSocket.write(head);
 
-        // Splice client and host packets together cleanly on independent channels
+        // Splice the incoming and outgoing sockets permanently together with zero logic drops
         clientSocket.pipe(targetSocket);
         targetSocket.pipe(clientSocket);
     });
@@ -41,5 +41,5 @@ server.on('upgrade', (req, clientSocket, head) => {
 });
 
 server.listen(process.env.PORT || 3000, () => {
-    console.log("CGNAT-Bypass tunnel mapped successfully to Render!");
+    console.log("CGNAT-Bypass tunnel mapped successfully to Render via Serveo Content!");
 });
