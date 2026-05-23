@@ -1,44 +1,55 @@
-const net = require('net');
 const http = require('http');
+const WebSocket = require('ws');
+const net = require('net');
 
-const TARGET_HOST = 'papers-four.gl.joinmc.link';
-const TARGET_PORT = 25565; // 🌟 Locked to Playit's default Minecraft Java port
+// 🌟 YOUR SQUIDSERVERS HOME CONFIGURATION
+const HOME_PLAYIT_HOST = 'papers-four.gl.joinmc.link';
+const HOME_PLAYIT_PORT = 25565; 
 
+// Create a basic HTTP server base
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Eaglercraft socket pipeline active via Playit.');
+    res.end('Eaglercraft Cloud Bridge is Online!');
 });
 
-// Capture raw WebSocket upgrade signals directly at the hardware socket level
-server.on('upgrade', (req, clientSocket, head) => {
-    // Reconstruct the raw HTTP upgrade request text block manually
-    let rawRequest = `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`;
-    for (const [key, value] of Object.entries(req.headers)) {
-        rawRequest += `${key}: ${value}\r\n`;
-    }
-    rawRequest += '\r\n';
+// Create a clean, compliant cloud WebSocket server for your friends to hit
+const wss = new WebSocket.Server({ server });
 
-    // Establish a direct TCP stream tunnel from Render directly to your Playit allocation port
-    const targetSocket = net.connect(TARGET_PORT, TARGET_HOST, () => {
-        targetSocket.write(rawRequest);
-        if (head && head.length > 0) targetSocket.write(head);
+wss.on('connection', (browserSocket, req) => {
+    console.log('Player connecting from school client...');
 
-        // Splice the incoming and outgoing sockets permanently together with zero logic drops
-        clientSocket.pipe(targetSocket);
-        targetSocket.pipe(clientSocket);
+    // Bridge the browser traffic directly down a clean TCP link into your home PC
+    const homeSocket = net.connect(HOME_PLAYIT_PORT, HOME_PLAYIT_HOST, () => {
+        console.log('Successfully linked school client to home PC!');
     });
 
-    targetSocket.on('error', (err) => {
-        console.error('Home tunnel stream error:', err.message);
-        clientSocket.end();
+    // Send data from browser down to your home PC
+    browserSocket.on('message', (message, isBinary) => {
+        if (homeSocket.writable) {
+            homeSocket.write(isBinary ? message : message.toString());
+        }
     });
 
-    clientSocket.on('error', (err) => {
-        console.error('Client browser stream error:', err.message);
-        targetSocket.end();
+    // Send data back from home PC straight to the browser
+    homeSocket.on('data', (data) => {
+        if (browserSocket.readyState === WebSocket.OPEN) {
+            browserSocket.send(data, { binary: true });
+        }
     });
+
+    // Gracefully handle close/disconnect events
+    browserSocket.on('close', () => {
+        homeSocket.end();
+    });
+
+    homeSocket.on('end', () => {
+        browserSocket.close();
+    });
+
+    browserSocket.on('error', (err) => console.error('Browser connection error:', err.message));
+    homeSocket.on('error', (err) => console.error('Home server routing error:', err.message));
 });
 
 server.listen(process.env.PORT || 3000, () => {
-    console.log("Raw TCP stream tunnel successfully established via Playit Default Port!");
+    console.log("Eaglercraft Cloud Bridge successfully listening on Render port 3000!");
 });
