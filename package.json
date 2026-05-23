@@ -1,8 +1,8 @@
 {
-  "name": "eaglercraft-proxy",
+  "name": "eaglercraft-cloud-bridge",
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
-    "http-proxy": "^1.18.1"
+    "ws": "^8.18.0"
   }
 }
