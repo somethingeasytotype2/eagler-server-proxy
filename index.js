@@ -1,49 +1,45 @@
-const http = require('http');
-const WebSocket = require('ws');
 const net = require('net');
+const http = require('http');
 
-// 🌟 THE LOCAL TUNNEL CONNECTION LOGIC
-const PROXY_HOST = '127.0.0.1';
-const PROXY_PORT = 9000; // Render will listen locally for the SSH pipe data
+// 🌟 Configured to grab data directly from your Pinggy tunnel assignment
+const TARGET_HOST = 'dzlve-172-59-153-246.run.pinggy-free.link';
+const TARGET_PORT = 36755; 
 
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Eaglercraft CGNAT-Bypass Cloud Engine Active!');
+    res.end('Eaglercraft CGNAT-Bypass Loop Active!');
 });
 
-// Launch a clear cloud-level WebSocket handler
-const wss = new WebSocket.Server({ server });
+// Capture raw WebSocket data packets directly at the base network level
+server.on('upgrade', (req, clientSocket, head) => {
+    // Reconstruct the raw HTTP upgrade request packet string
+    let rawRequest = `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`;
+    for (const [key, value] of Object.entries(req.headers)) {
+        rawRequest += `${key}: ${value}\r\n`;
+    }
+    rawRequest += '\r\n';
 
-wss.on('connection', (browserSocket) => {
-    // Open a direct TCP pipe inside Render's instance over to the loopback address
-    const localTunnelSocket = net.connect(PROXY_PORT, PROXY_HOST);
+    // Bridge Render's instance straight down the outbound Pinggy socket link
+    const targetSocket = net.connect(TARGET_PORT, TARGET_HOST, () => {
+        targetSocket.write(rawRequest);
+        if (head && head.length > 0) targetSocket.write(head);
 
-    // Stream browser clicks and block data straight down the pipe
-    browserSocket.on('message', (message, isBinary) => {
-        if (localTunnelSocket.writable) {
-            localTunnelSocket.write(isBinary ? message : message.toString());
-        }
+        // Splice client and host packets together cleanly on independent channels
+        clientSocket.pipe(targetSocket);
+        targetSocket.pipe(clientSocket);
     });
 
-    // Capture incoming packets and stream them back to the school browser client
-    localTunnelSocket.on('data', (data) => {
-        if (browserSocket.readyState === WebSocket.OPEN) {
-            browserSocket.send(data, { binary: true });
-        }
+    targetSocket.on('error', (err) => {
+        console.error('Home tunnel stream error:', err.message);
+        clientSocket.end();
     });
 
-    browserSocket.on('close', () => localTunnelSocket.end());
-    localTunnelSocket.on('end', () => browserSocket.close());
-
-    browserSocket.on('error', () => {});
-    localTunnelSocket.on('error', () => {});
-});
-
-// Open secondary internal loop for the reverse tunnel stream connection mapping
-const backendInboundServer = net.createServer((cgnatStream) => {
-    server.emit('upgrade', cgnatStream.req, cgnatStream, Buffer.alloc(0));
+    clientSocket.on('error', (err) => {
+        console.error('Client browser stream error:', err.message);
+        targetSocket.end();
+    });
 });
 
 server.listen(process.env.PORT || 3000, () => {
-    console.log("CGNAT Cloud Engine successfully initialized!");
+    console.log("CGNAT-Bypass tunnel mapped successfully to Render!");
 });
