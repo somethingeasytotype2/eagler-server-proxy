@@ -5,7 +5,7 @@ const path = require('path');
 
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Vercel School-Bypass Bridge Active.');
+    res.end('Eaglercraft Cloud Bridge is active via GitHub files.');
 });
 
 // Intercept the Eaglercraft game connection
@@ -16,6 +16,8 @@ server.on('upgrade', (req, clientSocket, head) => {
         
         const TARGET_HOST = tunnelData.host;
         const TARGET_PORT = parseInt(tunnelData.port, 10);
+
+        console.log(`[ROUTING] Channeling player to active tunnel -> ${TARGET_HOST}:${TARGET_PORT}`);
 
         let rawRequest = `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`;
         for (const [key, value] of Object.entries(req.headers)) {
@@ -39,4 +41,6 @@ server.on('upgrade', (req, clientSocket, head) => {
     }
 });
 
-module.exports = server;
+server.listen(process.env.PORT || 3000, () => {
+    console.log("File-based bridge is listening on Render!");
+});
