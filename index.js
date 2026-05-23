@@ -2,8 +2,7 @@ const net = require('net');
 const http = require('http');
 
 const TARGET_HOST = 'papers-four.gl.joinmc.link';
-// Playit's standard external port for Minecraft Java tunnels is 25565
-const TARGET_PORT = 25565; 
+const TARGET_PORT = 25565; // 🌟 Locked to Playit's default Minecraft Java port
 
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -19,7 +18,7 @@ server.on('upgrade', (req, clientSocket, head) => {
     }
     rawRequest += '\r\n';
 
-    // Establish a direct TCP stream tunnel from Render directly to your Playit tunnel
+    // Establish a direct TCP stream tunnel from Render directly to your Playit allocation port
     const targetSocket = net.connect(TARGET_PORT, TARGET_HOST, () => {
         targetSocket.write(rawRequest);
         if (head && head.length > 0) targetSocket.write(head);
@@ -41,5 +40,5 @@ server.on('upgrade', (req, clientSocket, head) => {
 });
 
 server.listen(process.env.PORT || 3000, () => {
-    console.log("Raw TCP stream tunnel successfully established via Playit!");
+    console.log("Raw TCP stream tunnel successfully established via Playit Default Port!");
 });
