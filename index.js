@@ -2,7 +2,7 @@ const http = require('http');
 const httpProxy = require('http-proxy');
 
 const proxy = httpProxy.createProxyServer({
-    target: 'YOUR_NGROK_ADDRESS_HERE', // Put your http://ngrok-free.app here
+    target: 'http://slacked-segment-turkey.ngrok-free.dev', // Put your http://ngrok-free.app here
     ws: true,
     changeOrigin: true
 });
