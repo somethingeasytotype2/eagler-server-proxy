@@ -1,80 +1,53 @@
+const net = require('net');
 const http = require('http');
 
 const TARGET_HOST = 'slacked-segment-turkey.ngrok-free.dev';
 const TARGET_PORT = 80;
 
+// Create a bare TCP server instead of an HTTP web server
 const server = http.createServer((req, res) => {
-    // Standard HTTP request forwarding
-    const options = {
-        hostname: TARGET_HOST,
-        port: TARGET_PORT,
-        path: req.url,
-        method: req.method,
-        headers: {
-            ...req.headers,
-            'host': TARGET_HOST,
-            'ngrok-skip-browser-warning': 'true',
-            'User-Agent': 'EaglercraftProxy/1.0'
-        }
-    };
-
-    const proxyReq = http.request(options, (proxyRes) => {
-        res.writeHead(proxyRes.statusCode, proxyRes.headers);
-        proxyRes.pipe(res, { end: true });
-    });
-
-    proxyReq.on('error', (err) => {
-        console.error('HTTP Proxy Error:', err.message);
-        if (!res.headersSent) {
-            res.writeHead(502, { 'Content-Type': 'text/plain' });
-            res.end('Connecting to home network pipeline...');
-        }
-    });
-
-    req.pipe(proxyReq, { end: true });
+    // This just clears regular web traffic hits
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Eaglercraft socket pipeline active.');
 });
 
-// Fixed Native WebSocket Handshake Upgrading
-server.on('upgrade', (req, socket, head) => {
-    const options = {
-        hostname: TARGET_HOST,
-        port: TARGET_PORT,
-        path: req.url,
-        method: req.method,
-        headers: {
-            ...req.headers,
-            'host': TARGET_HOST,
-            'ngrok-skip-browser-warning': 'true',
-            'User-Agent': 'EaglercraftProxy/1.0'
-        }
-    };
+// Capture raw WebSocket upgrade signals directly at the hardware socket level
+server.on('upgrade', (req, clientSocket, head) => {
+    // Inject the mandatory ngrok bypass headers into the raw text request block
+    req.headers['host'] = TARGET_HOST;
+    req.headers['ngrok-skip-browser-warning'] = 'true';
+    req.headers['User-Agent'] = 'EaglercraftProxy/1.0';
 
-    const proxyReq = http.request(options);
-    
-    proxyReq.on('upgrade', (proxyRes, proxySocket, proxyHead) => {
-        // Construct standard-compliant raw headers
-        let responseHeaders = 'HTTP/1.1 101 Switching Protocols\r\n';
-        for (const [key, value] of Object.entries(proxyRes.headers)) {
-            responseHeaders += `${key}: ${value}\r\n`;
-        }
-        responseHeaders += '\r\n';
+    // Reconstruct the raw HTTP upgrade request text block manually
+    let rawRequest = `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`;
+    for (const [key, value] of Object.entries(req.headers)) {
+        rawRequest += `${key}: ${value}\r\n`;
+    }
+    rawRequest += '\r\n';
 
-        socket.write(responseHeaders);
-        proxySocket.write(proxyHead);
+    // Establish a direct TCP stream tunnel from Render directly to your house network
+    const targetSocket = net.connect(TARGET_PORT, TARGET_HOST, () => {
+        // Shovel the raw handshake request data down the pipe
+        targetSocket.write(rawRequest);
+        if (head && head.length > 0) targetSocket.write(head);
 
-        // 🌟 FIX: Split data routing safely onto independent lines to prevent data drops
-        proxySocket.pipe(socket);
-        socket.pipe(proxySocket);
+        // Splice the incoming and outgoing sockets permanently together with zero logic drops
+        clientSocket.pipe(targetSocket);
+        targetSocket.pipe(clientSocket);
     });
 
-    proxyReq.on('error', (err) => {
-        console.error('WebSocket Upgrade Error:', err.message);
-        socket.end('HTTP/1.1 502 Bad Gateway\r\n\r\n');
+    // Guard rails against random drops
+    targetSocket.on('error', (err) => {
+        console.error('Home tunnel stream error:', err.message);
+        clientSocket.end();
     });
 
-    proxyReq.end();
+    clientSocket.on('error', (err) => {
+        console.error('Client browser stream error:', err.message);
+        targetSocket.end();
+    });
 });
 
 server.listen(process.env.PORT || 3000, () => {
-    console.log("School-bypass proxy is fully operational via native streams!");
+    console.log("Raw TCP stream tunnel successfully established!");
 });
